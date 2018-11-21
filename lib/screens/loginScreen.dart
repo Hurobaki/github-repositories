@@ -26,23 +26,38 @@ class LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController =
       TextEditingController(text: _password);
 
+  bool _requesting = false;
+
   LoginScreenState(this._githubApi);
 
   Future<void> _touchIDPop() async {
     var localAuth = LocalAuthentication();
+    var canCheckBio = await localAuth.canCheckBiometrics;
+    List<BiometricType> availableBio = await localAuth.getAvailableBiometrics();
     bool didAuthenticate = await localAuth.authenticateWithBiometrics(
-        localizedReason: 'Please authenticate to show account balance');
+        localizedReason: 'Please authenticate to log you in');
+
+    if (didAuthenticate) {
+      _automaticLogin();
+    }
+  }
+
+  void _automaticLogin() {
+    setState(() {
+      _usernameController.text = _githubApi.username;
+      _passwordController.text = _githubApi.password;
+      _handleSubmit();
+    });
   }
 
   initState() {
     super.initState();
 
-    if (_githubApi.loggedIn) {
-      setState(() {
-        _usernameController.text = _githubApi.username;
-        _passwordController.text = _githubApi.password;
-        _handleSubmit();
-      });
+    // If loggedIn && TTL expired
+    if (_githubApi.loggedIn && _githubApi.ttlExpired) {
+      _touchIDPop();
+    } else if (_githubApi.loggedIn) {
+      _automaticLogin();
     }
   }
 
@@ -53,8 +68,17 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleSubmit() async {
+    setState(() {
+      _requesting = true;
+    });
+
     var loggedIn = await _githubApi.login(
         _usernameController.text, _passwordController.text);
+
+    setState(() {
+      _requesting = false;
+    });
+
     if (loggedIn) {
       Navigator.pushReplacementNamed(context, 'home');
     } else {
@@ -62,21 +86,20 @@ class LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: Text('Github Login'),
-        ),
-        body: Container(
+  List<Widget> _buildBody() {
+    var listWidget = List<Widget>();
+
+    SingleChildScrollView singleChild = SingleChildScrollView(
+        padding: EdgeInsets.only(top: 1.0),
+        child: Container(
           margin: EdgeInsets.all(30.0),
           padding: EdgeInsets.all(10.0),
           child: Form(
             key: _formKey,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Container(
-                  margin: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 50.0),
+                  margin: EdgeInsets.only(bottom: 40.0),
                   child: Image.asset(
                     'assets/github.png',
                     width: 100.0,
@@ -114,5 +137,35 @@ class LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ));
+
+    listWidget.add(singleChild);
+
+    if (_requesting) {
+      var modal = Stack(
+        children: [
+          new Opacity(
+            opacity: 0.3,
+            child: const ModalBarrier(dismissible: false, color: Colors.grey),
+          ),
+          new Center(
+            child: new CircularProgressIndicator(),
+          ),
+        ],
+      );
+      listWidget.add(modal);
+    }
+
+    return listWidget;
+  }
+
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Text('Github Login'),
+        ),
+        body: Center(
+            child: Stack(
+          children: _buildBody(),
+        )));
   }
 }

@@ -25,24 +25,38 @@ class GithubApi {
   String get token => _token;
   bool get loggedIn => _loggedIn;
   bool get initialized => _initialized;
+  bool get ttlExpired => _ttlExpired;
 
   bool _loggedIn;
   bool _initialized;
+  bool _ttlExpired;
   String _username;
   String _password;
   String _token;
+
+  bool calculateTTLExpiration(DateTime ttl) {
+    var difference = DateTime.now().difference(ttl);
+    return difference.inMinutes > 1;
+  }
 
   Future init() async {
     String username = await FlutterKeychain.get(key: KEY_USERNAME);
     String password = await FlutterKeychain.get(key: KEY_PASSWORD);
     String oauthToken = await FlutterKeychain.get(key: KEY_OAUTH_TOKEN);
-//    DateTime ttl = DateTime.parse(await FlutterKeychain.get(key: KEY_TTL));
+    String ttl = await FlutterKeychain.get(key: KEY_TTL);
+
+    if (ttl != null) {
+      DateTime ttl = DateTime.parse(await FlutterKeychain.get(key: KEY_TTL));
+      _ttlExpired = calculateTTLExpiration(ttl);
+      print(_ttlExpired);
+    }
 
     if (username == null || oauthToken == null) {
       await logout();
       _loggedIn = false;
     } else {
       _loggedIn = true;
+      print(_loggedIn);
       _username = username;
       _password = password;
       _token = oauthToken;
