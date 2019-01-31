@@ -36,7 +36,7 @@ class GithubApi {
 
   bool calculateTTLExpiration(DateTime ttl) {
     var difference = DateTime.now().difference(ttl);
-    return difference.inMinutes > 1;
+    return difference.inHours > 11;
   }
 
   Future init() async {
@@ -48,7 +48,6 @@ class GithubApi {
     if (ttl != null) {
       DateTime ttl = DateTime.parse(await FlutterKeychain.get(key: KEY_TTL));
       _ttlExpired = calculateTTLExpiration(ttl);
-      print(_ttlExpired);
     }
 
     if (username == null || oauthToken == null) {
@@ -56,7 +55,6 @@ class GithubApi {
       _loggedIn = false;
     } else {
       _loggedIn = true;
-      print(_loggedIn);
       _username = username;
       _password = password;
       _token = oauthToken;
@@ -102,7 +100,6 @@ class GithubApi {
     for (var repo in reposJSON) {
       reposList.add(RepoModel.fromJson(repo));
     }
-
     return reposList;
   }
 

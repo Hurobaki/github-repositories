@@ -30,7 +30,7 @@ class RepositoriesScreenState extends State<RepositoriesScreen> {
 
   void getUserData(String username) async {
     var repos = await _githubApi.getRepos(username);
-    print(repos[0]);
+    print(repos.length);
     if (repos != null) {
       setState(() {
         reposList = repos;

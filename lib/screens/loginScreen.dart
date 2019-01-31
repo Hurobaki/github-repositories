@@ -53,7 +53,6 @@ class LoginScreenState extends State<LoginScreen> {
   initState() {
     super.initState();
 
-    // If loggedIn && TTL expired
     if (_githubApi.loggedIn && _githubApi.ttlExpired) {
       _touchIDPop();
     } else if (_githubApi.loggedIn) {
